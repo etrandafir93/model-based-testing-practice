@@ -30,10 +30,15 @@ class EmployeesController {
 	}
 
 	@GetMapping("/{employeeNo}")
-	ResponseEntity<Employee> get(@PathVariable String employeeNo) {
-		return employees.findByEmployeeNo(employeeNo)
-				.map(it -> new ResponseEntity<>(it, HttpStatus.OK))
-				.orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+	ResponseEntity<?> get(@PathVariable String employeeNo) {
+		try {
+			return employees.findByEmployeeNo(employeeNo)
+					.map(it -> new ResponseEntity<>(it, HttpStatus.OK))
+					.orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+		} catch (Exception e) {
+			return ResponseEntity.internalServerError()
+					.body(e.getMessage());
+		}
 	}
 
 	@PutMapping("/{employeeNo}")
