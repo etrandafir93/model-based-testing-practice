@@ -24,6 +24,7 @@ For the code examples in this demo, we'll use a simple SpringBoot application wi
 - Get a list of all employees.
 
 ![img.png](images/swagger.png)
+
 In this example, we'll use a Docker Compose file to spin up different versions of our application. One version will serve as the "model" or source of truth, while the other will be the version under test. Testcontainers and the _DockerComposeContainer_ class will help us manage these container.
 
 We'll also use Jqwik and a custom HTTP client to define actions supported by the API. Jqwik will then generate various action sequences with different parameters to test our service running in the containers. Regardless of whether the HTTP response is a success or failure, we'll compare the tested service's response with the expected response from the model.
@@ -184,8 +185,8 @@ Finally, we can create the test http clients and execute the test:
 @Property
 void mbtTest(@ForAll("mbtActions") ActionSequence<TestedVsModel> actions) {
 	TestedVsModel testVsModel = new TestedVsModel(
-			testClient(ENV.getServicePort("app-tested", 8080)),
-			testClient(ENV.getServicePort("app-model", 8080))
+	    testClient(ENV.getServicePort("app-tested", 8080)),
+	    testClient(ENV.getServicePort("app-model", 8080))
 	);
 	actions.run(testVsModel);
 }
@@ -194,4 +195,28 @@ private TestHttpClient testClient(int port) {
 	String url = "http://localhost:%s/api/employees".formatted(port);
 	return new TestHttpClient(url);
 }
+```
+
+If we run the _@Property_ test now, we'll get a sequence of thousands of requests, trying to find inconsistencies between the model and the tested service:
+```java
+23:14:38.767 [main] INFO TestHttpClient -- [tested] POST { name=mmSqEEUCZVoZhHLTSHnaBzASDSYdnYAkqvebImxyeqJf, empNo=Creative-79 }
+23:14:38.831 [main] INFO TestHttpClient -- [model] POST { name=mmSqEEUCZVoZhHLTSHnaBzASDSYdnYAkqvebImxyeqJf, empNo=Creative-79 }
+23:14:38.891 [main] INFO TestHttpClient -- [model] GET /Creative-79
+23:14:38.894 [main] INFO TestHttpClient -- [tested] GET /Creative-79
+23:14:38.898 [main] INFO TestHttpClient -- [tested] GET /Frontend-6
+23:14:38.947 [main] INFO TestHttpClient -- [model] GET /Frontend-6
+23:14:38.950 [main] INFO TestHttpClient -- [model] GET /DevOps-130
+23:14:38.954 [main] INFO TestHttpClient -- [tested] POST { name=tUX, empNo=DevOps-130 }
+23:14:38.980 [main] INFO TestHttpClient -- [model] POST { name=tUX, empNo=DevOps-130 }
+23:14:38.988 [main] INFO TestHttpClient -- [model] GET /DevOps-130
+23:14:38.994 [main] INFO TestHttpClient -- [tested] GET /DevOps-130
+23:14:38.999 [main] INFO TestHttpClient -- [model] GET /Creative-57
+23:14:39.002 [main] INFO TestHttpClient -- [model] PUT Creative-57?name=gJYm
+23:14:39.008 [main] INFO TestHttpClient -- [tested] PUT Creative-57?name=gJYm
+23:14:39.012 [main] INFO TestHttpClient -- [model] GET /Frontend-9
+23:14:39.015 [main] INFO TestHttpClient -- [model] PUT Frontend-9?name=hYgmZzcs
+23:14:39.019 [main] INFO TestHttpClient -- [tested] PUT Frontend-9?name=hYgmZzcs
+23:14:39.024 [main] INFO TestHttpClient -- [model] GET /Backend-39
+23:14:39.029 [main] INFO TestHttpClient -- [model] PUT Backend-39?name=EcmetTrvVlM
+23:14:39.032 [main] INFO TestHttpClient -- [tested] PUT Backend-39?name=EcmetTrvVlM
 ```
