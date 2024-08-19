@@ -33,11 +33,16 @@ class ModelBasedTest {
 
 	@Property(tries = 110)
 	void mbtTest(@ForAll("mbtActions") ActionSequence<TestedVsModel> actions) {
-		actions.run(
-				new TestedVsModel(
-						testClient("tested", ENV.getServicePort("app-tested", 8080)),
-						testClient("model", ENV.getServicePort("app-model", 8080))
-				));
+		TestedVsModel testVsModel = new TestedVsModel(
+				testClient("tested", ENV.getServicePort("app-tested", 8080)),
+				testClient("model", ENV.getServicePort("app-model", 8080))
+		);
+		actions.run(testVsModel);
+	}
+
+	private TestHttpClient testClient(String clientName, int port) {
+		String url = "http://localhost:%s/api/employees".formatted(port);
+		return new TestHttpClient(clientName, url);
 	}
 
 	@Provide
@@ -48,12 +53,6 @@ class ModelBasedTest {
 	@Provide
 	Arbitrary<ActionSequence<TestHttpClient>> simpleActions() {
 		return SimpleActions.allActions();
-	}
-
-
-	private TestHttpClient testClient(String clientName, int port) {
-		String url = "http://localhost:%s/api/employees".formatted(port);
-		return new TestHttpClient(clientName, url);
 	}
 
 }

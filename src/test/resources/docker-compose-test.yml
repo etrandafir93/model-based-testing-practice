@@ -1,16 +1,5 @@
 version: '3.8'
-
 services:
-
-  postgres:
-    image: postgres:16-alpine
-    ports:
-      - "5432:5432"
-    environment:
-      POSTGRES_DB: employees
-      POSTGRES_USER: username
-      POSTGRES_PASSWORD: password
-
   app-model:
     image: mbt-demo:v1
 
@@ -22,3 +11,12 @@ services:
       SPRING_DATASOURCE_PASSWORD: password
     depends_on:
       - postgres
+
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: employees
+      POSTGRES_USER: username
+      POSTGRES_PASSWORD: password
