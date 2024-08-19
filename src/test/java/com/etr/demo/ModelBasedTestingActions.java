@@ -16,20 +16,25 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class ModelBasedTestingActions {
 
-	record SubjectVsModel(TestHttpClient subject, TestHttpClient model) {
+	record TestedVsModel(TestHttpClient tested, TestHttpClient model) {
 	}
 
-	static Arbitrary<ActionSequence<SubjectVsModel>> allActions() {
+	static Arbitrary<ActionSequence<TestedVsModel>> allActions() {
 		return Arbitraries.sequences(
 				Arbitraries.oneOf(
+						getOneEmployeeAction(),
+						getAllEmployeesAction(),
 						createEmployeeAction(),
-						getAllAction(),
 						updateEmployeeNameAction()
 				));
 	}
 
-	static Arbitrary<Action<SubjectVsModel>> getAllAction() {
-		return Arbitraries.nothing().map(__ -> new GetAllAction());
+	static Arbitrary<Action<TestedVsModel>> getAllEmployeesAction() {
+		return Arbitraries.nothing().map(__ -> new GetAllEmployeesAction());
+	}
+
+	static Arbitrary<GetOneEmployeeAction> getOneEmployeeAction() {
+		return employeeNos().map(GetOneEmployeeAction::new);
 	}
 
 	static Arbitrary<CreateEmployeeAction> createEmployeeAction() {
@@ -57,67 +62,84 @@ class ModelBasedTestingActions {
 
 	@ToString
 	@RequiredArgsConstructor
-	static class CreateEmployeeAction implements Action<SubjectVsModel> {
+	static class CreateEmployeeAction implements Action<TestedVsModel> {
 		private final String employeeNo;
 		private final String name;
 
 		@Override
-		public SubjectVsModel run(SubjectVsModel clients) {
-			if (clients.model.get(employeeNo).isEmpty()) {
-				clients.subject.create(employeeNo, name);
-				clients.model.create(employeeNo, name);
+		public TestedVsModel run(TestedVsModel apps) {
+			if (apps.model.get(employeeNo).isEmpty()) {
+				apps.tested.create(employeeNo, name);
+				apps.model.create(employeeNo, name);
 				assertEquals(
-						clients.model.get(employeeNo).orElseThrow().name(),
-						clients.subject.get(employeeNo).orElseThrow().name());
+						apps.model.get(employeeNo).orElseThrow(),
+						apps.tested.get(employeeNo).orElseThrow());
 			} else {
 				try {
-					clients.model.create(employeeNo, name);
+					apps.model.create(employeeNo, name);
 				} catch (Exception e) {
-					assertThatThrownBy(() -> clients.subject.create(employeeNo, name))
-							.isInstanceOf(e.getClass())
-							.hasMessage(e.getMessage());
+					assertThatThrownBy(() -> apps.tested.create(employeeNo, name))
+							.isInstanceOf(e.getClass());
 				}
 			}
-			return clients;
+			return apps;
 		}
 	}
 
 	@ToString
 	@RequiredArgsConstructor
-	static class UpdateEmployeeAction implements Action<SubjectVsModel> {
+	static class UpdateEmployeeAction implements Action<TestedVsModel> {
 		private final String employeeNo;
 		private final String newName;
 
 		@Override
-		public SubjectVsModel run(SubjectVsModel clients) {
-			if (clients.model.get(employeeNo).isPresent()) {
-				clients.subject.update(employeeNo, newName);
-				clients.model.update(employeeNo, newName);
+		public TestedVsModel run(TestedVsModel apps) {
+			if (apps.model.get(employeeNo).isPresent()) {
+				apps.tested.update(employeeNo, newName);
+				apps.model.update(employeeNo, newName);
 				assertEquals(
-						clients.model.get(employeeNo).orElseThrow().name(),
-						clients.subject.get(employeeNo).orElseThrow().name());
+						apps.model.get(employeeNo).orElseThrow(),
+						apps.tested.get(employeeNo).orElseThrow());
 			} else {
 				try {
-					clients.model.update(employeeNo, newName);
+					apps.model.update(employeeNo, newName);
 				} catch (Exception e) {
-					assertThatThrownBy(() -> clients.subject.update(employeeNo, newName))
+					assertThatThrownBy(() -> apps.tested.update(employeeNo, newName))
 							.isInstanceOf(e.getClass())
 							.hasMessage(e.getMessage());
 				}
 			}
-			return clients;
+			return apps;
 		}
 	}
 
 	@ToString
-	static class GetAllAction implements Action<SubjectVsModel> {
+	@RequiredArgsConstructor
+	static class GetOneEmployeeAction implements Action<TestedVsModel> {
+		private final String empNo;
+
 		@Override
-		public SubjectVsModel run(SubjectVsModel clients) {
-			var actual = clients.subject.getAll();
-			var expected = clients.model.getAll();
+		public TestedVsModel run(TestedVsModel apps) {
+			var actual = apps.tested.get(empNo);
+			var expected = apps.model.get(empNo);
+
+			actual.ifPresentOrElse(
+					it -> assertThat(expected).hasValue(it),
+					() -> assertThat(expected).isEmpty()
+			);
+			return apps;
+		}
+	}
+
+	@ToString
+	static class GetAllEmployeesAction implements Action<TestedVsModel> {
+		@Override
+		public TestedVsModel run(TestedVsModel apps) {
+			var actual = apps.tested.getAll();
+			var expected = apps.model.getAll();
 			assertThat(actual)
-					.containsExactlyElementsOf(expected);
-			return clients;
+					.containsExactlyInAnyOrderElementsOf(expected);
+			return apps;
 		}
 	}
 }

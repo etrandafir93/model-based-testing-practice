@@ -18,6 +18,23 @@ class EmployeesController {
 	record CreateEmployeeRequest(String employeeNo, String name) {
 	}
 
+	@GetMapping
+	List<Employee> getAll() {
+		return employees.findAll();
+	}
+
+	@GetMapping("/{employeeNo}")
+	ResponseEntity<?> get(@PathVariable String employeeNo) {
+		try {
+			return employees.findByEmployeeNo(employeeNo)
+					.map(it -> new ResponseEntity<>(it, HttpStatus.OK))
+					.orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+		} catch (Exception e) {
+			return ResponseEntity.internalServerError()
+					.body(e.getMessage());
+		}
+	}
+
 	@PostMapping
 	ResponseEntity<?> createEmployee(@RequestBody CreateEmployeeRequest req) {
 		try {
@@ -29,12 +46,6 @@ class EmployeesController {
 		}
 	}
 
-	@GetMapping("/{employeeNo}")
-	ResponseEntity<Employee> get(@PathVariable String employeeNo) {
-		return employees.findByEmployeeNo(employeeNo)
-				.map(it -> new ResponseEntity<>(it, HttpStatus.OK))
-				.orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
-	}
 
 	@PutMapping("/{employeeNo}")
 	ResponseEntity<Employee> update(@PathVariable String employeeNo, @RequestParam String name) {
@@ -48,8 +59,4 @@ class EmployeesController {
 		return new ResponseEntity<>(updated, HttpStatus.OK);
 	}
 
-	@GetMapping
-	List<Employee> getAll() {
-		return employees.findAll();
-	}
 }

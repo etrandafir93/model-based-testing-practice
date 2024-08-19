@@ -28,6 +28,7 @@ public class TestHttpClient {
 	}
 
 	public Optional<EmployeeResponse> get(String empNo) {
+		log.info(YELLOW.paint("[%s] GET /%s".formatted(clientName, empNo)));
 		String url = baseUrl + "/" + empNo;
 		try {
 			return Optional.of(restTemplate.getForObject(url, EmployeeResponse.class));
@@ -38,7 +39,7 @@ public class TestHttpClient {
 
 	public void update(String employeeNo, String newName) {
 		String url = "%s/%s?name=%s".formatted(baseUrl, employeeNo, newName);
-		log.info(PURPLE.paint("[%s] PUT ?name=%s".formatted(clientName, newName)));
+		log.info(PURPLE.paint("[%s] PUT %s?name=%s".formatted(clientName, employeeNo, newName)));
 		restTemplate.put(url, null);
 	}
 
