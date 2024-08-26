@@ -1,4 +1,4 @@
-# Model-based Testing with Testcontainers and Jqwick
+# Model-based Testing with Testcontainers and Jqwik
 
 In this demo, we'll explore the Model-based testing technique to perform regression testing on a simple REST
 API.
@@ -6,9 +6,9 @@ API.
 We'll use the [Jqwik](https://jqwik.net) test engine on JUnit5 to run Property and Model-based tests. Additionally, we'll use
 [Testcontainers](https://testcontainers.com/getting-started/) to spin up Docker containers with different versions of our application.
 
-## Model Based Testing
+## Model-Based Testing
 
-Model-based testing (MBT) is a method for testing stateful software by creating a "model" that represents the expected behavior of the system. Instead of manually writing test cases, we'll use a testing tool that:
+Model-based testing (MBT) is a method for testing stateful software by creating a "model" that represents the system's expected behavior. Instead of manually writing test cases, we'll use a testing tool that:
 
 - Takes a list of possible actions supported by the application,
 - Automatically generates test sequences from these actions, targeting potential edge cases,
@@ -26,18 +26,18 @@ For the code examples in this demo, we'll use a simple SpringBoot application wi
 ![img.png](images/swagger.png)
 
 
-In this example, we'll use a Docker Compose file to spin up different versions of our application. One version will serve as the "model" or source of truth, while the other will be the version under test. Testcontainers and the _DockerComposeContainer_ class will help us manage these container.
+In this example, we'll use a Docker Compose file to spin up different versions of our application. One version will serve as the "model" or source of truth, while the other will be the version under test. Testcontainers and the _DockerComposeContainer_ class will help us manage these containers.
 
-We'll also use Jqwik and a custom HTTP client to define actions supported by the API. Jqwik will then generate various action sequences with different parameters to test our service running in the containers. Regardless of whether the HTTP response is a success or failure, we'll compare the tested service's response with the expected response from the model.
+We'll also use Jqwik and a custom HTTP client to define API-supported actions. Jqwik will then generate various action sequences with different parameters to test our service running in the containers. Regardless of whether the HTTP response is a success or failure, we'll compare the tested service's response with the expected response from the model.
 
 When we run the final test, thousands of requests will be fired at our APIs, helping us uncover corner cases and inconsistencies:
 ![img.png](images/logs.png)
 
 ## Implementation
-Even though we won't dive deep into the implementation details, let's discuss the main components of our test, and see how they interact with each-other. 
+Even though we won't dive deep into the implementation details, let's discuss the main components of our test, and see how they interact with each other. 
 
 ### Test Http Client
-Now that we know the contract, let's create a small test utility that will help us execute the http requests:
+Now that we know the contract, let's create a small test utility that will help us execute the HTTP requests:
 
 ```java
 class TestHttpClient {
@@ -101,7 +101,7 @@ static Arbitrary<Action<TestedVsModel>> getAllEmplyeesAction() { /* ... */ }
 
 // same for the other actions
 ```
-Finally, we can write our test and leverage Jqwik to test various sequences of with provided actions. However, in order to create the _TestedVsModel_ tuple, we'll need to make sure the two versions of the service are up and running, and acquire their URLs: 
+Finally, we can write our test and leverage Jqwik to test various sequences using the actions provided. However, in order to create the _TestedVsModel_ tuple, we'll need to make sure the two versions of the service are up and running, and acquire their URLs: 
 
 ```java
 @Property
@@ -122,7 +122,7 @@ services:
   app-model:
     image: mbt-demo:v1
 ```
-Now, let's imagine we have implemented a new version that uses a Postgresql database. However, we want to make sure the core functionality hasn't changed. Since the version _"v2"_ will be the component under test, let's also add it to the docker-compose file, together with the _Postgres_ database: 
+Now, let's imagine we have implemented a new version that uses a Postgresql database. However, we want to make sure the core functionality hasn't changed. Since version _"v2"_ will be the component under test, let's also add it to the docker-compose file, together with the _Postgres_ database: 
 
 ```yml
 version: '3.8'
@@ -177,7 +177,7 @@ class ModelBasedTest {
 	// tests
 }
 ```
-Finally, we can create the test http clients and execute the test:
+Finally, we can create the test HTTP clients and execute the test:
 
 ```java
 @Property
