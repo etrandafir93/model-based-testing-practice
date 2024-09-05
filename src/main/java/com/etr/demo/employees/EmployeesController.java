@@ -19,8 +19,12 @@ class EmployeesController {
 	}
 
 	@GetMapping
-	List<Employee> getAll() {
-		return employees.findAll();
+	List<Employee> getAll(@RequestParam(required = false) String department) {
+		if (department == null) {
+			return employees.findAll();
+		} else {
+			return employees.findByDepartment(department);
+		}
 	}
 
 	@GetMapping("/{employeeNo}")
