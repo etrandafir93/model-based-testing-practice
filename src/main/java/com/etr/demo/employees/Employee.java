@@ -10,12 +10,15 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(uniqueConstraints = @UniqueConstraint(columnNames = "employeeNo"))
 class Employee {
+
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
+
+	@Column(name = "employee_no", unique = true)
 	private String employeeNo;
+
 	private String name;
 
 	Employee(String employeeNo, String name) {
