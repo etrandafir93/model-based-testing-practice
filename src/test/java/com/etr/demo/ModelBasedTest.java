@@ -2,10 +2,7 @@ package com.etr.demo;
 
 import com.etr.demo.MbtJqwikActions.TestedVsModel;
 import com.etr.demo.utils.TestHttpClient;
-import net.jqwik.api.Arbitrary;
-import net.jqwik.api.ForAll;
-import net.jqwik.api.Property;
-import net.jqwik.api.Provide;
+import net.jqwik.api.*;
 import net.jqwik.api.stateful.ActionSequence;
 import net.jqwik.testcontainers.Container;
 import net.jqwik.testcontainers.Testcontainers;
@@ -29,20 +26,26 @@ class ModelBasedTest {
 	@Property(tries = 110)
 	void mbtTest(@ForAll("mbtActions") ActionSequence<TestedVsModel> actions) {
 		TestedVsModel testVsModel = new TestedVsModel(
-				testClient("tested", ENV.getServicePort("app-tested", 8080)),
-				testClient("model", ENV.getServicePort("app-model", 8080))
-		);
+				testClient("app-tested"),
+				testClient("app-model"));
+
 		actions.run(testVsModel);
 	}
 
-	private TestHttpClient testClient(String clientName, int port) {
-		String url = "http://localhost:%s/api/employees".formatted(port);
-		return new TestHttpClient(clientName, url);
+	private TestHttpClient testClient(String service) {
+		int port = ENV.getServicePort(service, 8080);
+		return new TestHttpClient(service, "http://localhost:%s/api/employees".formatted(port));
 	}
 
 	@Provide
 	Arbitrary<ActionSequence<TestedVsModel>> mbtActions() {
-		return MbtJqwikActions.allActions();
+		return Arbitraries.sequences(
+				Arbitraries.oneOf(
+						MbtJqwikActions.getOneEmployeeAction(),
+						MbtJqwikActions.getEmployeesByDepartmentAction(),
+						MbtJqwikActions.createEmployeeAction(),
+						MbtJqwikActions.updateEmployeeNameAction()
+				));
 	}
 
 }

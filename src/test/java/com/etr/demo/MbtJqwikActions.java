@@ -1,40 +1,38 @@
 package com.etr.demo;
 
 import com.etr.demo.utils.TestHttpClient;
-import lombok.RequiredArgsConstructor;
-import lombok.ToString;
+import com.etr.demo.utils.TestHttpClient.ApiResponse;
+import com.etr.demo.utils.TestHttpClient.EmployeeDto;
 import net.jqwik.api.Arbitraries;
 import net.jqwik.api.Arbitrary;
 import net.jqwik.api.Combinators;
 import net.jqwik.api.arbitraries.StringArbitrary;
 import net.jqwik.api.stateful.Action;
-import net.jqwik.api.stateful.ActionSequence;
+
+import java.util.List;
+import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class MbtJqwikActions {
 
 	record TestedVsModel(TestHttpClient tested, TestHttpClient model) {
 	}
 
-	static Arbitrary<ActionSequence<TestedVsModel>> allActions() {
-		return Arbitraries.sequences(
-				Arbitraries.oneOf(
-						getOneEmployeeAction(),
-						getAllEmployeesAction(),
-						createEmployeeAction(),
-						updateEmployeeNameAction()
-				));
-	}
-
-	static Arbitrary<Action<TestedVsModel>> getAllEmployeesAction() {
-		return Arbitraries.nothing().map(__ -> new GetAllEmployeesAction());
-	}
-
 	static Arbitrary<GetOneEmployeeAction> getOneEmployeeAction() {
 		return employeeNos().map(GetOneEmployeeAction::new);
+	}
+
+	static Arbitrary<GetEmployeesByDepartmentAction> getEmployeesByDepartmentAction() {
+		Arbitrary<String> invalidDepartments = Arbitraries.strings().ofMinLength(1);
+		Arbitrary<String> validDepartments = Arbitraries.of(
+				"frontend", "backend", "hr", "creative", "devops",
+				"FRONTEND", "BACKEND", "HR", "CREATIVE", "DEVOPS",
+				"fROntEND", "backEND", "Hr", "crEATive", "devOPS"
+		);
+
+		return Arbitraries.oneOf(validDepartments, invalidDepartments)
+				.map(GetEmployeesByDepartmentAction::new);
 	}
 
 	static Arbitrary<CreateEmployeeAction> createEmployeeAction() {
@@ -60,86 +58,70 @@ class MbtJqwikActions {
 				.as("%s-%s"::formatted);
 	}
 
-	@ToString
-	@RequiredArgsConstructor
-	static class CreateEmployeeAction implements Action<TestedVsModel> {
-		private final String employeeNo;
-		private final String name;
-
+	record CreateEmployeeAction(String empNo, String name) implements Action<TestedVsModel> {
 		@Override
 		public TestedVsModel run(TestedVsModel apps) {
-			if (apps.model.get(employeeNo).isEmpty()) {
-				apps.tested.create(employeeNo, name);
-				apps.model.create(employeeNo, name);
-				assertEquals(
-						apps.model.get(employeeNo).orElseThrow(),
-						apps.tested.get(employeeNo).orElseThrow());
-			} else {
-				try {
-					apps.model.create(employeeNo, name);
-				} catch (Exception e) {
-					assertThatThrownBy(() -> apps.tested.create(employeeNo, name))
-							.isInstanceOf(e.getClass());
-				}
-			}
-			return apps;
-		}
-	}
+			ApiResponse<EmployeeDto> actual = apps.tested.post(empNo, name);
+			ApiResponse<EmployeeDto> expected = apps.model.post(empNo, name);
 
-	@ToString
-	@RequiredArgsConstructor
-	static class UpdateEmployeeAction implements Action<TestedVsModel> {
-		private final String employeeNo;
-		private final String newName;
-
-		@Override
-		public TestedVsModel run(TestedVsModel apps) {
-			if (apps.model.get(employeeNo).isPresent()) {
-				apps.tested.update(employeeNo, newName);
-				apps.model.update(employeeNo, newName);
-				assertEquals(
-						apps.model.get(employeeNo).orElseThrow(),
-						apps.tested.get(employeeNo).orElseThrow());
-			} else {
-				try {
-					apps.model.update(employeeNo, newName);
-				} catch (Exception e) {
-					assertThatThrownBy(() -> apps.tested.update(employeeNo, newName))
-							.isInstanceOf(e.getClass())
-							.hasMessage(e.getMessage());
-				}
-			}
-			return apps;
-		}
-	}
-
-	@ToString
-	@RequiredArgsConstructor
-	static class GetOneEmployeeAction implements Action<TestedVsModel> {
-		private final String empNo;
-
-		@Override
-		public TestedVsModel run(TestedVsModel apps) {
-			var actual = apps.tested.get(empNo);
-			var expected = apps.model.get(empNo);
-
-			actual.ifPresentOrElse(
-					it -> assertThat(expected).hasValue(it),
-					() -> assertThat(expected).isEmpty()
-			);
-			return apps;
-		}
-	}
-
-	@ToString
-	static class GetAllEmployeesAction implements Action<TestedVsModel> {
-		@Override
-		public TestedVsModel run(TestedVsModel apps) {
-			var actual = apps.tested.getAll();
-			var expected = apps.model.getAll();
 			assertThat(actual)
-					.containsExactlyInAnyOrderElementsOf(expected);
+					.satisfies(statusCodeEquals(expected.statusCode()))
+					.satisfies(bodyEquals(expected.body()));
 			return apps;
 		}
+	}
+
+	record UpdateEmployeeAction(String empNo, String newName) implements Action<TestedVsModel> {
+		@Override
+		public TestedVsModel run(TestedVsModel apps) {
+			ApiResponse<Void> actual = apps.tested.put(empNo, newName);
+			ApiResponse<Void> expected = apps.model.put(empNo, newName);
+
+			assertThat(actual)
+					.satisfies(statusCodeEquals(expected.statusCode()));
+
+			ApiResponse<EmployeeDto> actualAfterUpdate = apps.tested.get(empNo);
+			ApiResponse<EmployeeDto> expectedAfterUpdate = apps.model.get(empNo);
+
+			assertThat(actualAfterUpdate)
+					.satisfies(statusCodeEquals(expectedAfterUpdate.statusCode()))
+					.satisfies(bodyEquals(expectedAfterUpdate.body()));
+			return apps;
+		}
+	}
+
+	record GetOneEmployeeAction(String empNo) implements Action<TestedVsModel> {
+		@Override
+		public TestedVsModel run(TestedVsModel apps) {
+			ApiResponse<EmployeeDto> actual = apps.tested.get(empNo);
+			ApiResponse<EmployeeDto> expected = apps.model.get(empNo);
+
+			assertThat(actual)
+					.satisfies(statusCodeEquals(expected.statusCode()))
+					.satisfies(bodyEquals(expected.body()));
+			return apps;
+		}
+	}
+
+	record GetEmployeesByDepartmentAction(String department) implements Action<TestedVsModel> {
+		@Override
+		public TestedVsModel run(TestedVsModel apps) {
+			ApiResponse<List<EmployeeDto>> actual = apps.tested.getByDepartment(department);
+			ApiResponse<List<EmployeeDto>> expected = apps.model.getByDepartment(department);
+
+			assertThat(actual)
+					.satisfies(statusCodeEquals(expected.statusCode()))
+					.satisfies(bodyEquals(expected.body()));
+			return apps;
+		}
+
+	}
+
+	private static <T> Consumer<ApiResponse<T>> statusCodeEquals(int expectedStatusCode) {
+		return actual -> assertThat(actual.statusCode()).isEqualTo(expectedStatusCode);
+	}
+
+	private static <T> Consumer<ApiResponse<T>> bodyEquals(T expectedBody) {
+		return actual -> assertThat(actual.body()).isEqualTo(expectedBody);
 	}
 }
