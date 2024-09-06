@@ -1,12 +1,13 @@
 version: '3.8'
 
 services:
-  postgres:
-    image: postgres:16-alpine
+  mysql:
+    image: mysql:8.0
     restart: always
     environment:
-      POSTGRES_DB: employees
-      POSTGRES_USER: username
-      POSTGRES_PASSWORD: password
+      MYSQL_DATABASE: employees
+      MYSQL_USER: username
+      MYSQL_PASSWORD: password
+      MYSQL_ROOT_PASSWORD: rootpassword
     ports:
-      - "5432:5432"
+      - "3306:3306"
