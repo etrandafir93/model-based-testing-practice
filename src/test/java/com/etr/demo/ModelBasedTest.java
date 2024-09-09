@@ -1,6 +1,6 @@
 package com.etr.demo;
 
-import com.etr.demo.MbtJqwikActions.TestedVsModel;
+import com.etr.demo.MbtJqwikActions.ModelVsTested;
 import com.etr.demo.utils.TestHttpClient;
 import net.jqwik.api.*;
 import net.jqwik.api.stateful.ActionSequence;
@@ -23,21 +23,23 @@ class ModelBasedTest {
 					Wait.forHttp("/api/employees").forStatusCode(200));
 
 	@Property(tries = 110)
-	void regressionTest(@ForAll("mbtActions") ActionSequence<TestedVsModel> actions) {
-		TestedVsModel testVsModel = new TestedVsModel(
-				testClient("app-tested"),
-				testClient("app-model"));
+	void regressionTest(@ForAll("mbtJqwikActions") ActionSequence<ModelVsTested> actions) {
+		ModelVsTested testVsModel = new ModelVsTested(
+				testClient("app-model"),
+				testClient("app-tested")
+		);
 
 		actions.run(testVsModel);
 	}
 
-	private TestHttpClient testClient(String service) {
+	static TestHttpClient testClient(String service) {
 		int port = ENV.getServicePort(service, 8080);
-		return new TestHttpClient(service, "http://localhost:%s/api/employees".formatted(port));
+		String url = "http://localhost:%s/api/employees".formatted(port);
+		return new TestHttpClient(service, url);
 	}
 
 	@Provide
-	Arbitrary<ActionSequence<TestedVsModel>> mbtJqwikActions() {
+	Arbitrary<ActionSequence<ModelVsTested>> mbtJqwikActions() {
 		return Arbitraries.sequences(
 				Arbitraries.oneOf(
 						MbtJqwikActions.getOneEmployeeAction(),
