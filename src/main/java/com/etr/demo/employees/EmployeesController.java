@@ -1,5 +1,8 @@
 package com.etr.demo.employees;
 
+import io.swagger.v3.oas.annotations.OpenAPIDefinition;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -11,6 +14,7 @@ import java.util.List;
 @RestController
 @RequestMapping("api/employees")
 @RequiredArgsConstructor
+@Tag(name = "Manage Employees")
 class EmployeesController {
 
 	private final EmployeesRepository employees;
@@ -19,6 +23,7 @@ class EmployeesController {
 	}
 
 	@GetMapping
+	@Operation(summary = "Find Employee from a given department.")
 	List<Employee> getAll(@RequestParam(required = false) String department) {
 		if (department == null) {
 			return employees.findAll();
@@ -28,6 +33,7 @@ class EmployeesController {
 	}
 
 	@GetMapping("/{employeeNo}")
+	@Operation(summary = "Find an Employee based on his {employeeNo}.")
 	ResponseEntity<?> get(@PathVariable String employeeNo) {
 		try {
 			return employees.findByEmployeeNo(employeeNo)
@@ -40,6 +46,7 @@ class EmployeesController {
 	}
 
 	@PostMapping
+	@Operation(summary = "Register an Employee.")
 	ResponseEntity<?> createEmployee(@RequestBody CreateEmployeeRequest req) {
 		try {
 			var employee = employees.save(new Employee(req.employeeNo, req.name));
@@ -52,6 +59,7 @@ class EmployeesController {
 
 
 	@PutMapping("/{employeeNo}")
+	@Operation(summary = "Update an Employee's name.")
 	ResponseEntity<Employee> update(@PathVariable String employeeNo, @RequestParam String name) {
 		var empOpt = employees.findByEmployeeNo(employeeNo);
 		if (empOpt.isEmpty()) {
