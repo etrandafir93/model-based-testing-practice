@@ -23,6 +23,9 @@ In our case, the "actions" are simply the endpoints exposed by the application's
 
 ![img.png](images/swagger.png)
 
+Once everything is configured and we finally run the test, we can expect to see a rapid sequence of hundreds of requests being sent to the two stateful services:
+
+![img.png](images/logs.png)
 
 ## Docker Compose
 
@@ -222,28 +225,45 @@ void regressionTest(@ForAll("mbtJqwikActions") ActionSequence<ModelVsTested> act
 Let's finally tun the test! This will generate a sequence of thousands of requests trying to find inconsistencies between the model and the tested service:
 
 ```
-10:31:54.492 [main] INFO -- [tested] POST /api/employees { name=LY, empNo=DevOps-7 }
-10:31:54.532 [main] INFO -- [model] POST /api/employees { name=LY, empNo=DevOps-7 }
-10:31:54.593 [main] INFO -- [model] GET /api/employees/DevOps-7
-10:31:54.604 [main] INFO -- [tested] GET /api/employees/DevOps-7
-10:31:54.617 [main] INFO -- [model] GET /api/employees/HR-160
-10:31:54.626 [main] INFO -- [model] PUT /api/employeesHR-160?name=TEjDSCeODLK
-10:31:54.636 [main] INFO -- [tested] PUT /api/employeesHR-160?name=TEjDSCeODLK
-10:31:54.647 [main] INFO -- [model] GET /api/employees/DevOps-9
-10:31:54.655 [main] INFO -- [tested] POST /api/employees { name=fcQqVOqZQcK, empNo=DevOps-9 }
-10:31:54.677 [main] INFO -- [model] POST /api/employees { name=fcQqVOqZQcK, empNo=DevOps-9 }
-10:31:54.690 [main] INFO -- [model] GET /api/employees/DevOps-9
-10:31:54.702 [main] INFO -- [tested] GET /api/employees/DevOps-9
-10:31:54.712 [main] INFO -- [model] GET /api/employees/HR-101
-10:31:54.721 [main] INFO -- [model] PUT /api/employeesHR-101?name=gHv
-10:31:54.731 [main] INFO -- [tested] PUT /api/employeesHR-101?name=gHv
-10:31:54.740 [main] INFO -- [tested] GET /api/employees
-10:31:54.752 [main] INFO -- [model] GET /api/employees
-10:31:54.763 [main] INFO -- [tested] GET /api/employees/Frontend-65
-10:31:54.771 [main] INFO -- [model] GET /api/employees/Frontend-65
-10:31:54.778 [main] INFO -- [tested] GET /api/employees
-10:31:54.786 [main] INFO -- [model] GET /api/employees
+INFO com.etr.demo.utils.TestHttpClient -- [app-tested] PUT /api/employeesFrontend-129?name=v
+INFO com.etr.demo.utils.TestHttpClient -- [app-model] PUT /api/employeesFrontend-129?name=v
+INFO com.etr.demo.utils.TestHttpClient -- [app-tested] GET /api/employees/Frontend-129
+INFO com.etr.demo.utils.TestHttpClient -- [app-model] GET /api/employees/Frontend-129
+INFO com.etr.demo.utils.TestHttpClient -- [app-tested] POST /api/employees { name=sdxToS, empNo=Frontend-91 }
+INFO com.etr.demo.utils.TestHttpClient -- [app-model] POST /api/employees { name=sdxToS, empNo=Frontend-91 }
+INFO com.etr.demo.utils.TestHttpClient -- [app-tested] PUT /api/employeesFrontend-4?name=PZbmodNLNwX
+INFO com.etr.demo.utils.TestHttpClient -- [app-model] PUT /api/employeesFrontend-4?name=PZbmodNLNwX
+INFO com.etr.demo.utils.TestHttpClient -- [app-tested] GET /api/employees/Frontend-4
+INFO com.etr.demo.utils.TestHttpClient -- [app-model] GET /api/employees/Frontend-4
+INFO com.etr.demo.utils.TestHttpClient -- [app-tested] GET /api/employees?department=ٺ⯟桸
+INFO com.etr.demo.utils.TestHttpClient -- [app-model] GET /api/employees?department=ٺ⯟桸
         ...
 ```
 
 ## Catching Errors
+
+If we run the test and check the logs, we’ll quickly spot a failure. It appears that when searching for employees by department with the argument `ٺ⯟桸` the model produces an internal server error, while the test version returns 200 OK:
+
+```text
+Original Sample
+---------------
+actions:
+ActionSequence[FAILED]: 8 actions run [
+    UpdateEmployeeAction[empNo=Creative-13, newName=uRhplM],
+    CreateEmployeeAction[empNo=Backend-184, name=aGAYQ],
+    UpdateEmployeeAction[empNo=Backend-3, newName=aWCxzg],
+    UpdateEmployeeAction[empNo=Frontend-93, newName=SrJTVwMvpy],
+    UpdateEmployeeAction[empNo=Frontend-129, newName=v],
+    CreateEmployeeAction[empNo=Frontend-91, name=sdxToS],
+    UpdateEmployeeAction[empNo=Frontend-4, newName=PZbmodNLNwX],
+    GetEmployeesByDepartmentAction[department=ٺ⯟桸]
+]
+    final currentModel: ModelVsTested[model=com.etr.demo.utils.TestHttpClient@5dc0ff7d, tested=com.etr.demo.utils.TestHttpClient@64920dc2]
+Multiple Failures (1 failure)
+    -- failure 1 --
+    expected: 200
+    but was: 500
+```
+
+Upon investigation, we find that the issue arises from a native SQL query using Postgres-specific syntax to retrieve data. While this was a simple issue in our small application, model-based testing can help uncover unexpected behavior that may only surface after a specific sequence of repetitive steps pushes the system into a particular state.
+

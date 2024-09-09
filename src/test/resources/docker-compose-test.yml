@@ -1,9 +1,7 @@
 version: '3.8'
 services:
   app-model:
-    image: mbt-demo:postgres
-#    ports:
-#      - "8081:8080"
+    image: emanueltrandafir/mbt-demo:postgres
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/employees
       SPRING_DATASOURCE_USERNAME: username
@@ -21,9 +19,7 @@ services:
       POSTGRES_PASSWORD: password
 
   app-tested:
-    image: mbt-demo:mysql
-#    ports:
-#      - "8080:8080"
+    image: emanueltrandafir/mbt-demo:mysql
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/employees
       SPRING_DATASOURCE_USERNAME: username

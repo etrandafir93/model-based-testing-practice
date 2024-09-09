@@ -26,8 +26,7 @@ class ModelBasedTest {
 	void regressionTest(@ForAll("mbtJqwikActions") ActionSequence<ModelVsTested> actions) {
 		ModelVsTested testVsModel = new ModelVsTested(
 				testClient("app-model"),
-				testClient("app-tested")
-		);
+				testClient("app-tested"));
 
 		actions.run(testVsModel);
 	}
