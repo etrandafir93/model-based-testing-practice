@@ -1,4 +1,4 @@
-# Model-based Testing with Testcontainers and Jqwick
+# Model-Based Testing with Testcontainers and Jqwik
 
 In this demo, we'll explore the Model-based testing technique to perform regression testing on a simple REST
 API.
@@ -6,9 +6,9 @@ API.
 We'll use the [Jqwik](https://jqwik.net) test engine on JUnit5 to run Property and Model-based tests. Additionally, we'll use
 [Testcontainers](https://testcontainers.com/getting-started/) to spin up Docker containers with different versions of our application.
 
-## Model Based Testing
+## 1. Model-Based Testing
 
-Model-based testing (MBT) is a method for testing stateful software by creating a "model" that represents the expected behavior of the system. Instead of manually writing test cases, we'll use a testing tool that:
+Model-Based Testing (MBT) is a method for testing stateful software by comparing the tested component with a "model" that represents the expected behavior of the system. Instead of manually writing test cases, we'll use a testing tool that:
 
 - Takes a list of possible actions supported by the application,
 - Automatically generates test sequences from these actions, targeting potential edge cases,
@@ -18,7 +18,7 @@ In our case, the "actions" are simply the endpoints exposed by the application's
 
 - Find an employee by its unique "Employee Number"
 - Update an employee's name
-- Get a list of all employees
+- Get a list of all the employees from a "department"
 - Register a new employee
 
 ![img.png](images/swagger.png)
@@ -27,7 +27,7 @@ Once everything is configured and we finally run the test, we can expect to see 
 
 ![img.png](images/logs.png)
 
-## Docker Compose
+## 2. Docker Compose
 
 Let’s assume we need to switch the database from Postgres to MySQL and want to ensure the service’s behavior remains consistent. To test this, we can run both versions of the application, send identical requests to each, and compare the responses. 
 
@@ -59,11 +59,11 @@ services:
     # ...
 ```
 
-## Testcontainers
+## 3. Testcontainers
 
 At this point, we could start the application and databases manually for testing, but this would be tedious. Instead, let's use Testcontainers' [`DockerComposeContainer`](https://java.testcontainers.org/modules/docker_compose/) to automate this with our Docker Compose file during the testing phase.
 
-In this example, we'll use Jqwik as our JUnit 5 test runner. Firstly, let's add the Jqwik and Testcontainers dependencies to your _pom.xml_:
+In this example, we'll use Jqwik as our JUnit 5 test runner. Firstly, let's add the Jqwik and Testcontainers dependencies to our _pom.xml_:
 
 ```xml
 <dependency>
@@ -101,9 +101,9 @@ class ModelBasedTest {
 }
 ```
 
-## Test Http Client
+## 4. Test Http Client
 
-Now let's create a small test utility that will help us execute the HTTP requests against our services
+Now let's create a small test utility that will help us execute the HTTP requests against our services:
 
 ```java
 class TestHttpClient {
@@ -132,16 +132,16 @@ static TestHttpClient testClient(String service) {
 }
 ```
 
-This will make it easily to create two test clients in our test, one for each version of the service:
+This will make it easy to create two test clients in our test, one for each version of the service:
 
 ```java
 TestHttpClient model = testClient("app-model");
 TestHttpClient tested = testClient("app-tested");
 ```
 
-## Jqwik
+## 5. Jqwik
 
-Jqwik is a property-based testing framework for Java that integrates with JUnit5, automatically generating test cases to validate properties of code across diverse input data. It enhances test coverage and uncovers edge cases by using generators to create varied and random test inputs.
+Jqwik is a property-based testing framework for Java that integrates with JUnit5, automatically generating test cases to validate properties of code across diverse inputs. It enhances test coverage and uncovers edge cases by using generators to create varied and random test inputs.
 
 If you're new to Jqwik, you can explore their API in detail by reviewing the [official user guide](https://jqwik.net/docs/current/user-guide.html). While this tutorial won't cover all the specifics of  the API, it's important to know that Jqwik allows us to define a set of actions we want to test.
 
@@ -156,7 +156,7 @@ void regressionTest() {
 
 ```
 
-Next, we’ll define the "actions," which are the HTTP calls to our APIs and can also include assertions. 
+Next, we’ll define the "actions", which are the HTTP calls to our APIs and can also include assertions. 
 
 For instance, the _GetOneEmployeeAction_ will try to fetch a specific employee from both services and compare the responses:
 
@@ -177,21 +177,27 @@ record GetOneEmployeeAction(String empNo) implements Action<ModelVsTested> {
 }
 ```
 
-Additionally, we'll need to wrap these *Action*s within _Arbitrary_ objects. We can think of Arbitraries as of objects implementing the factory design pattern, that can generate a wide variety of instances of a type, based on a set of configured rules. 
+Additionally, we'll need to wrap these *Action*s within _Arbitrary_ objects. We can think of _Arbitraries_ as of objects implementing the factory design pattern, that can generate a wide variety of instances of a type, based on a set of configured rules. 
 
 For instance, the _Arbitrary<String>_ returned by _employeeNos()_ can generate employee numbers by choosing a random department from the configured list and concatenating a number between 0 and 200:
+
 ```java
 static Arbitrary<String> employeeNos() {
   Arbitrary<String> departments = Arbitraries.of("Frontend", "Backend", "HR", "Creative", "DevOps");
   Arbitrary<Long> ids = Arbitraries.longs().between(1, 200);
   return Combinators.combine(departments, ids).as("%s-%s"::formatted);
 }
+```
 
+Similarly, _getOneEmployeeAction()_ returns an _Aribtrary_ action based on a given _Arbitrary_ employee number:  
+
+```java
 static Arbitrary<GetOneEmployeeAction> getOneEmployeeAction() {
   return employeeNos().map(GetOneEmployeeAction::new);
 }
 ```
-After declaring all our actions, we'll create an _ActionSequence_. We'll also wrap these actions in _Arbitrary_ objects. In simple terms, _Arbitrary_ objects follow the _Factory_ design pattern, allowing us to generate objects and actions with randomized parameters:
+
+After declaring all the other _Actions_ and _Arbitraries_, we'll create an _ActionSequence_:
 
 ```java
 @Provide
@@ -209,7 +215,7 @@ static Arbitrary<Action<ModelVsTested>> getOneEmployeeAction() { /* ... */ }
 static Arbitrary<Action<ModelVsTested>> getEmployeesByDepartmentAction() { /* ... */ }
 // same for the other actions
 ```
-Now we can write our test and leverage Jqwik to test various sequences of with provided actions. Let's create the _ModelVsTested_ tuple, and use it to execute the sequence of actions against it:
+Now we can write our test and leverage Jqwik to use the provided actions to test various sequences. Let's create the _ModelVsTested_ tuple, and use it to execute the sequence of actions against it:
 
 ```java
 @Property
@@ -222,7 +228,7 @@ void regressionTest(@ForAll("mbtJqwikActions") ActionSequence<ModelVsTested> act
 }
 ```
  
-Let's finally tun the test! This will generate a sequence of thousands of requests trying to find inconsistencies between the model and the tested service:
+That's it, we can finally run the test! This will generate a sequence of thousands of requests trying to find inconsistencies between the model and the tested service:
 
 ```
 INFO com.etr.demo.utils.TestHttpClient -- [app-tested] PUT /api/employeesFrontend-129?name=v
@@ -240,7 +246,7 @@ INFO com.etr.demo.utils.TestHttpClient -- [app-model] GET /api/employees?departm
         ...
 ```
 
-## Catching Errors
+## 6. Catching Errors
 
 If we run the test and check the logs, we’ll quickly spot a failure. It appears that when searching for employees by department with the argument `ٺ⯟桸` the model produces an internal server error, while the test version returns 200 OK:
 
