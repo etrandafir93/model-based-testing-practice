@@ -63,7 +63,7 @@ services:
 
 At this point, we could start the application and databases manually for testing, but this would be tedious. Instead, let's use Testcontainers' [`DockerComposeContainer`](https://java.testcontainers.org/modules/docker_compose/) to automate this with our Docker Compose file during the testing phase.
 
-In this example, we'll use Jqwik as our JUnit 5 test runner. Firstly, let's add the Jqwik and Testcontainers dependencies to our _pom.xml_:
+In this example, we'll use Jqwik as our JUnit 5 test runner. Firstly, let's add the [Jqwik](https://mvnrepository.com/artifact/net.jqwik/jqwik) and [Testcontainers](https://mvnrepository.com/artifact/org.testcontainers/testcontainers), and the [jqwik-testcontainers](https://mvnrepository.com/artifact/net.jqwik/jqwik-testcontainers) dependencies to our _pom.xml_:
 
 ```xml
 <dependency>
