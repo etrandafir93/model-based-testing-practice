@@ -81,7 +81,7 @@ In this example, we'll use Jqwik as our JUnit 5 test runner. Firstly, let's add 
 <dependency>
     <groupId>org.testcontainers</groupId>
     <artifactId>testcontainers</artifactId>
-    <version>1.16.2</version>
+    <version>1.20.1</version>
     <scope>test</scope>
 </dependency>
 ```
