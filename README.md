@@ -26,7 +26,7 @@ For the code examples in this demo, we'll use a simple SpringBoot application wi
 ![img.png](images/swagger.png)
 
 
-In this example, we'll use a Docker Compose file to spin up different versions of our application. One version will serve as the "model" or source of truth, while the other will be the version under test. Testcontainers and the _DockerComposeContainer_ class will help us manage these containers.
+In this example, we'll use a Docker Compose file to spin up different versions of our application. One version will serve as the "model" or source of truth, while the other will be the version under test. Testcontainers and the _ComposeContainer_ class will help us manage these containers.
 
 We'll also use Jqwik and a custom HTTP client to define API-supported actions. Jqwik will then generate various action sequences with different parameters to test our service running in the containers. Regardless of whether the HTTP response is a success or failure, we'll compare the tested service's response with the expected response from the model.
 
@@ -162,17 +162,16 @@ To do this, we'll employ the Testcontainers library and Jqwik's support for Test
 </dependency>
 ```
 
-As a result, we can now instantiate a [`DockerComposeContainer`](https://java.testcontainers.org/modules/docker_compose/) and pass our test _docker-compose_ file as argument:
+As a result, we can now instantiate a [`ComposeContainer`](https://java.testcontainers.org/modules/docker_compose/) and pass our test _docker-compose_ file as argument:
 
 ```java
 @Testcontainers
 class ModelBasedTest {
 
 	@Container
-	static DockerComposeContainer<?> ENV = new DockerComposeContainer<>(new File("src/test/resources/docker-compose-test.yml"))
+	static ComposeContainer<?> ENV = new ComposeContainer<>(new File("src/test/resources/docker-compose-test.yml"))
         .withExposedService("app-tested", 8080, Wait.forHttp("/api/employees").forStatusCode(200))
-        .withExposedService("app-model", 8080, Wait.forHttp("/api/employees").forStatusCode(200))
-        .withExposedService("postgres", 5432);
+        .withExposedService("app-model", 8080, Wait.forHttp("/api/employees").forStatusCode(200));
 
 	// tests
 }
