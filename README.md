@@ -61,7 +61,7 @@ services:
 
 ## 3. Testcontainers
 
-At this point, we could start the application and databases manually for testing, but this would be tedious. Instead, let's use Testcontainers' [`DockerComposeContainer`](https://java.testcontainers.org/modules/docker_compose/) to automate this with our Docker Compose file during the testing phase.
+At this point, we could start the application and databases manually for testing, but this would be tedious. Instead, let's use Testcontainers' [`ComposeContainer`](https://java.testcontainers.org/modules/docker_compose/) to automate this with our Docker Compose file during the testing phase.
 
 In this example, we'll use Jqwik as our JUnit 5 test runner. Firstly, let's add the [Jqwik](https://mvnrepository.com/artifact/net.jqwik/jqwik) and [Testcontainers](https://mvnrepository.com/artifact/org.testcontainers/testcontainers), and the [jqwik-testcontainers](https://mvnrepository.com/artifact/net.jqwik/jqwik-testcontainers) dependencies to our _pom.xml_:
 
@@ -86,14 +86,14 @@ In this example, we'll use Jqwik as our JUnit 5 test runner. Firstly, let's add 
 </dependency>
 ```
 
-As a result, we can now instantiate a _DockerComposeContainer_ and pass our test _docker-compose_ file as argument:
+As a result, we can now instantiate a _ComposeContainer_ and pass our test _docker-compose_ file as argument:
 
 ```java
 @Testcontainers
 class ModelBasedTest {
 
     @Container
-    static DockerComposeContainer<?> ENV = new DockerComposeContainer<>(new File("src/test/resources/docker-compose-test.yml"))
+    static ComposeContainer ENV = new ComposeContainer(new File("src/test/resources/docker-compose-test.yml"))
        .withExposedService("app-tested", 8080, Wait.forHttp("/api/employees").forStatusCode(200))
        .withExposedService("app-model", 8080, Wait.forHttp("/api/employees").forStatusCode(200));
 
@@ -122,7 +122,7 @@ class TestHttpClient {
 }
 ```
 
-Additionally, in the test class we can declare another method that helps us create _TestHttpClient_s for the two services started by the _DockerComposeContainer_:
+Additionally, in the test class we can declare another method that helps us create _TestHttpClient_s for the two services started by the _ComposeContainer_:
 
 ```java
 static TestHttpClient testClient(String service) {

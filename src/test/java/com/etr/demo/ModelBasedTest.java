@@ -6,7 +6,7 @@ import net.jqwik.api.*;
 import net.jqwik.api.stateful.ActionSequence;
 import net.jqwik.testcontainers.Container;
 import net.jqwik.testcontainers.Testcontainers;
-import org.testcontainers.containers.DockerComposeContainer;
+import org.testcontainers.containers.ComposeContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 
 import java.io.File;
@@ -15,7 +15,7 @@ import java.io.File;
 class ModelBasedTest {
 
 	@Container
-	static DockerComposeContainer<?> ENV = new DockerComposeContainer<>(
+	static ComposeContainer ENV = new ComposeContainer(
 				new File("src/test/resources/docker-compose-test.yml"))
 			.withExposedService("app-tested", 8080,
 					Wait.forHttp("/api/employees").forStatusCode(200))
