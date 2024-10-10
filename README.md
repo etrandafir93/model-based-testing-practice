@@ -40,13 +40,13 @@ We can set up the environment using a Docker Compose that will run two versions 
 services:
   ## MODEL
   app-model:
-      image: mbt-demo:postgres
-      # ...
-      depends_on:
-          - postgres
+    image: mbt-demo:postgres
+    # ...
+    depends_on:
+      - postgres
   postgres:
-      image: postgres:16-alpine
-      # ...
+    image: postgres:16-alpine
+    # ...
       
   ## TESTED
   app-tested:
@@ -272,4 +272,10 @@ Multiple Failures (1 failure)
 ```
 
 Upon investigation, we find that the issue arises from a native SQL query using Postgres-specific syntax to retrieve data. While this was a simple issue in our small application, model-based testing can help uncover unexpected behavior that may only surface after a specific sequence of repetitive steps pushes the system into a particular state.
+
+## 7. Conclusion
+
+In this demo, we explored Property and Model-Based Testing to write a regression test for our REST API. We ran two versions of our application: the model (the current live version) and the tested version (built from a feature branch with structural changes).
+
+Using Testcontainers and Docker Compose, we quickly set up both versions and their dependencies. We then created a simple HTTP client and mapped our REST API endpoints to Jqwik actions. Finally, Jqwik generated hundreds of requests with varied payloads, targeting both versions and focusing on edge cases to find inconsistencies.
 
